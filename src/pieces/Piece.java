@@ -14,25 +14,13 @@ public class Piece {
     private int strength;
     private int movedst;
 
-    public Vector<Point> selected(Board b) {
-        b.setSelected(this);
 
-        Vector<Point> validMoves = new Vector<>();
+    public void move(Board b, Point chosen) throws InvalidMoveException {
 
-        PointShiftFunction xPlus = (x, y, i) -> new Point(x+i,y);
-        PointShiftFunction xMinus = (x, y, i) -> new Point(x-i,y);
-        PointShiftFunction yPlus = (x, y, i) -> new Point(x,y+i);
-        PointShiftFunction yMinus = (x, y, i) -> new Point(x,y-i);
+        // make a list of all the valid moves for the current piece
+        Vector<Point> validMoves = findValidMoves(b);
 
-        validMoves.addAll(testForValidMovesInDirection(b, xPlus));
-        validMoves.addAll(testForValidMovesInDirection(b, xMinus));
-        validMoves.addAll(testForValidMovesInDirection(b, yPlus));
-        validMoves.addAll(testForValidMovesInDirection(b, yMinus));
-
-        return validMoves;
-    }
-
-    public void move(Vector<Point> validMoves, Point chosen) throws InvalidMoveException {
+        // if the chosen move is in the list, mark it as so
         boolean chosenValidMove = false;
         for (Point tested : validMoves) {
             if (tested == chosen) {
@@ -41,12 +29,42 @@ public class Piece {
             }
         }
 
+        // this breaks execution if the chosen move was invalid, so after this point we can assume it is
         if (!chosenValidMove) { throw new InvalidMoveException(); }
 
-        //if steps on guy
-        //else just move there
+
+        // conflict between our piece and an enemy one
+        if (b.getBoard()[chosen.x][chosen.y] != null) {
+            Piece[][] boardCopy = b.getBoard();
+            Piece conflicting = b.getBoard()[chosen.x][chosen.y];
+            int solution = conflicting.steppedOn(this);
+            switch (solution) {
+                // we get removed :<
+                case -1:
+                    boardCopy[coords.x][coords.y] = null;
+                    b.setBoard(boardCopy);
+                    break;
+                // we don't do anything because the other piece is stronger
+                case 0:
+                    break;
+                // success, we got them!
+                case 1:
+                    //step there
+                    boardCopy[coords.x][coords.y] = null;
+                    boardCopy[chosen.x][chosen.y] = this;
+                    b.setBoard(boardCopy);
+                    break;
+                default:
+                    break;
+            }
+
+        }
+
     }
-    public void steppedOn() {}
+
+    public int steppedOn(Piece by) {
+
+    }
 
 
 
@@ -71,6 +89,21 @@ public class Piece {
     }
 
 
+    private Vector<Point> findValidMoves(Board b) {
+        Vector<Point> validMoves = new Vector<>();
+
+        PointShiftFunction xPlus = (x, y, i) -> new Point(x+i,y);
+        PointShiftFunction xMinus = (x, y, i) -> new Point(x-i,y);
+        PointShiftFunction yPlus = (x, y, i) -> new Point(x,y+i);
+        PointShiftFunction yMinus = (x, y, i) -> new Point(x,y-i);
+
+        validMoves.addAll(testForValidMovesInDirection(b, xPlus));
+        validMoves.addAll(testForValidMovesInDirection(b, xMinus));
+        validMoves.addAll(testForValidMovesInDirection(b, yPlus));
+        validMoves.addAll(testForValidMovesInDirection(b, yMinus));
+
+        return validMoves;
+    }
 
     private Vector<Point> testForValidMovesInDirection(Board b, PointShiftFunction direction) {
         Vector<Point> validMovesInThisDirection = new Vector<>();
