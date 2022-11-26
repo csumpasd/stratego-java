@@ -15,7 +15,7 @@ public class Piece {
     private int movedst;
 
 
-    public void move(Board b, Point chosen) throws InvalidMoveException {
+    public void move(Point chosen, Board b) throws InvalidMoveException {
 
         // make a list of all the valid moves for the current piece
         Vector<Point> validMoves = findValidMoves(b);
@@ -32,41 +32,51 @@ public class Piece {
         // this breaks execution if the chosen move was invalid, so after this point we can assume it is
         if (!chosenValidMove) { throw new InvalidMoveException(); }
 
+        Piece[][] boardCopy = b.getBoard();
 
-        // conflict between our piece and an enemy one
+        // conflict between our piece and an enemy one, if the piece we stepped on returns true we die, otherwise we do nothing
         if (b.getBoard()[chosen.x][chosen.y] != null) {
-            Piece[][] boardCopy = b.getBoard();
+
             Piece conflicting = b.getBoard()[chosen.x][chosen.y];
-            int solution = conflicting.steppedOn(this);
-            switch (solution) {
-                // we get removed :<
-                case -1:
-                    boardCopy[coords.x][coords.y] = null;
-                    b.setBoard(boardCopy);
-                    break;
-                // we don't do anything because the other piece is stronger
-                case 0:
-                    break;
-                // success, we got them!
-                case 1:
-                    //step there
-                    boardCopy[coords.x][coords.y] = null;
-                    boardCopy[chosen.x][chosen.y] = this;
-                    b.setBoard(boardCopy);
-                    break;
-                default:
-                    break;
+            if (conflicting.steppedOn(this, b)) {
+                boardCopy[coords.x][coords.y] = null;
+                b.setBoard(boardCopy);
             }
 
+            // todo set piece to be shown to enemy in recap/now?
+            return;
         }
 
+        // if there was no conflict, move to the chosen spot
+        boardCopy[coords.x][coords.y] = null;
+        boardCopy[chosen.x][chosen.y] = this;
+        b.setBoard(boardCopy);
+
     }
 
-    public int steppedOn(Piece by) {
+    public boolean steppedOn(Piece by, Board b) {
+
+        // todo set piece to be shown to enemy in recap/now?
+        Piece[][] boardCopy = b.getBoard();
+
+        // only we die, return false
+        if (strength < by.getStrength()) {
+            boardCopy[coords.x][coords.y] = null;
+            b.setBoard(boardCopy);
+            return false;
+
+        }
+        // we both die, return true
+        if (strength == by.getStrength()) {
+            boardCopy[coords.x][coords.y] = null;
+            b.setBoard(boardCopy);
+            return true;
+        }
+
+        // we were stronger, nobody dies
+        return false;
 
     }
-
-
 
     public String getName() {
         return name;
@@ -84,11 +94,6 @@ public class Piece {
         return strength;
     }
 
-    public int getMovedst() {
-        return movedst;
-    }
-
-
     private Vector<Point> findValidMoves(Board b) {
         Vector<Point> validMoves = new Vector<>();
 
@@ -97,15 +102,15 @@ public class Piece {
         PointShiftFunction yPlus = (x, y, i) -> new Point(x,y+i);
         PointShiftFunction yMinus = (x, y, i) -> new Point(x,y-i);
 
-        validMoves.addAll(testForValidMovesInDirection(b, xPlus));
-        validMoves.addAll(testForValidMovesInDirection(b, xMinus));
-        validMoves.addAll(testForValidMovesInDirection(b, yPlus));
-        validMoves.addAll(testForValidMovesInDirection(b, yMinus));
+        validMoves.addAll(testForValidMovesInDirection(xPlus, b));
+        validMoves.addAll(testForValidMovesInDirection(xMinus, b));
+        validMoves.addAll(testForValidMovesInDirection(yPlus, b));
+        validMoves.addAll(testForValidMovesInDirection(yMinus, b));
 
         return validMoves;
     }
 
-    private Vector<Point> testForValidMovesInDirection(Board b, PointShiftFunction direction) {
+    private Vector<Point> testForValidMovesInDirection(PointShiftFunction direction, Board b) {
         Vector<Point> validMovesInThisDirection = new Vector<>();
         for (int i = 0; i <= movedst; i++) {
             Point tested = new Point(direction.shiftPoint(coords.x,coords.y,i));
