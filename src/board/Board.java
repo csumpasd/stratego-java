@@ -1,5 +1,8 @@
 package board;
 
+import gui.GameWindow;
+import pieces.*;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -9,25 +12,62 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.Vector;
 
-import gui.GameWindow;
-import helper.InvalidMoveException;
-import pieces.*;
-
+/**
+ * Implements the board as an extension to a JPanel
+ * <p>
+ *     Houses the fields on which the pieces stand
+ * </p>
+ * <p>
+ *     Also handles mouse events and all that :)
+ * </p>
+ */
 public class Board extends JPanel implements Serializable, MouseListener, MouseMotionListener {
-    // add images to draw
+
+    /**
+     * Makes sure serialization doesn't break
+     */
     @Serial
     private static final long serialVersionUID = 1L;
+
+    /**
+     * The fields on the board
+     */
     private final Field[][] board;
+
+    /**
+     * The window in which the board is
+     */
     private GameWindow gameWindow;
 
+    /**
+     * Whether it is Light's turn
+     */
     private boolean lightTurn;
 
+    /**
+     * The piece that's "picked up" by the cursor
+     */
     private Piece currPiece;
+
+    /**
+     * The position of the cursor, offset to draw the "picked up" piece centered under the cursor
+     */
     private Point currPos;
 
+    /**
+     * The current game stage, -1 if players are setting up, 0 if playing, and 1 if somebody has won
+     */
     private int gameStage;
+
+    /**
+     * Whether the current player has started their turn by clicking on either pond
+     */
     private boolean startedTurn;
 
+    /**
+     * Constructs the board, places the fields and pieces, and sets some values
+     * @param g The window in which the board will be
+     */
     public Board(GameWindow g) {
 
         this.gameWindow = g;
@@ -40,9 +80,10 @@ public class Board extends JPanel implements Serializable, MouseListener, MouseM
         this.addMouseListener(this);
         this.addMouseMotionListener(this);
 
+        // creates all the fields and adds them to the right location
         for (int y = 0; y <= 9; y++) {
             for (int x = 0; x <= 9; x++) {
-                int color = (x + y) % 2;
+                boolean color = ((x + y) % 2) == 0;
                 board[y][x] = new Field(this, new Point(x,y), color);
                 this.add(board[y][x]);
             }
@@ -57,14 +98,18 @@ public class Board extends JPanel implements Serializable, MouseListener, MouseM
 
         placePieces();
 
+        // after loading, sets everything correctly
         if (gameStage == 0) {
             startedTurn = false;
-            g.setTitle("Stratego! - " + (lightTurn ? "Light" : "Dark") + "'s turn, click either pond to start");
+            if (gameWindow != null) gameWindow.setTitle("Stratego! - " + (lightTurn ? "Light" : "Dark") + "'s turn, click either pond to start");
             repaint();
         }
 
     }
 
+    /**
+     * Places all the pieces on their default fields as part of the board initialization
+     */
     private void placePieces() {
 
         // -1 flags x1
@@ -128,9 +173,7 @@ public class Board extends JPanel implements Serializable, MouseListener, MouseM
     /**
      * Checks whether a piece could move to a given point.
      * <p>
-     *     First checks if the point is on the board,
-     *     then makes sure it's not in either pond,
-     *     then finally checks if there's a teammate there.
+     *     First checks if the point is on the board, then makes sure it's not in either pond, then finally checks if there's a teammate there.
      * </p>
      * @param p Point with x,y coordinates
      * @return true if valid, false otherwise
@@ -150,6 +193,10 @@ public class Board extends JPanel implements Serializable, MouseListener, MouseM
 
     }
 
+    /**
+     * Reveals everything, and sets the game to stage 1, which effectively freezes everything
+     * @param by The winning piece that stepped on the enemy flag
+     */
     public void win(Piece by) {
 
         for (int y = 0; y <= 9; y++) {
@@ -161,199 +208,265 @@ public class Board extends JPanel implements Serializable, MouseListener, MouseM
         }
 
         this.gameStage = 1;
-        gameWindow.setTitle("Stratego! - " + (by.isLightTeam() ? "Light" : "Dark") + " Wins!");
+        if (gameWindow != null) gameWindow.setTitle("Stratego! - " + (by.isLightTeam() ? "Light" : "Dark") + " Wins!");
 
     }
 
+    /**
+     * Getter for board
+     * @return The fields on the board
+     */
     public Field[][] getBoard() {
         return board;
     }
 
+    /**
+     * Getter for lightTurn
+     * @return Whether it is the Light player's turn
+     */
     public boolean isLightTurn() {
         return lightTurn;
     }
 
+    /**
+     * Getter for startedTurn
+     * @return Whether the player has started their current turn
+     */
     public boolean hasStartedTurn() {
         return startedTurn;
     }
 
+    /**
+     * Getter for gameStage
+     * @return The current game stage
+     */
     public int getGameStage() {
         return gameStage;
     }
 
+    /**
+     * Setter for gameStage
+     * @param gameStage The new game stage
+     */
     public void setGameStage(int gameStage) {
         this.gameStage = gameStage;
     }
 
-    public void setGameWindow(GameWindow g) {
-        this.gameWindow = g;
+    /**
+     * Setter for gameWindow
+     * @param gameWindow The new game window
+     */
+    public void setGameWindow(GameWindow gameWindow) {
+        this.gameWindow = gameWindow;
     }
 
+    /**
+     * Draws the board and everything on it
+     * @param g the <code>Graphics</code> object to protect
+     */
     @Override
     public void paintComponent(Graphics g) {
 
+        // for every field on the board
         for (int y = 0; y <= 9; y++) {
             for (int x = 0; x <= 9; x++) {
+
                 Field f = board[y][x];
-                if (currPiece != null && gameStage == 0) {
+
+                // if there's a piece "picked up" by the cursor then
+                if (gameStage == 0 && currPiece != null) {
+
+                    // finds the valid moves of that piece
                     Vector<Field> validMoves = currPiece.findValidMoves(this);
+                    // and draws every valid field as highlighted and others normally
                     f.paintComponent(g, validMoves.contains(f));
+
+                // or otherwise
                 } else {
+
+                    // draws every field normally
                     f.paintComponent(g, false);
+
                 }
 
             }
         }
 
-        if (currPiece != null) {
-            if (currPiece.getMaxMovement() != 0 || gameStage == -1) {
-                final Image img = currPiece.getImg();
-                g.drawImage(img, currPos.x, currPos.y, null);
-            }
+        // if the cursor "picks up" a piece then
+        if (currPiece != null && (currPiece.getMaxMovement() != 0 || gameStage == -1)) {
+
+            // draw that
+            final Image img = currPiece.getImg();
+            g.drawImage(img, currPos.x, currPos.y, null);
+
         }
+
     }
 
+    /**
+     * Figures out what to do at the moment when the mouse is pressed down
+     * @param e the event to be processed
+     */
     @Override
     public void mousePressed(MouseEvent e) {
+
+        // clears the current piece to ensure a clean slate
+        currPiece = null;
+
+        // sets the draw position to be under the cursor
         this.currPos = new Point(e.getX() - 30 ,e.getY() - 30);
 
+        // gets the field under the cursor
         Field f = (Field) this.getComponentAt(new Point(e.getX(), e.getY()));
 
-        // if there's a piece there and the game hasn't ended, pick up the piece
-        if (!f.isEmpty() && this.gameStage < 1 && startedTurn) {
+        // if the game hasn't ended, the turn has started, and there is a piece under the cursor then
+        if (this.gameStage < 1 && startedTurn && !f.isEmpty()) {
+
+            // makes the cursor "pick up" that piece
             currPiece = f.getPiece();
+
+            // if the piece isn't the current player's piece, puts it back down
+            if ((currPiece.isLightTeam() != lightTurn) ) { currPiece = null; return; }
+
+            // and if the piece can move, or if the game is in the setup phase then
             if (currPiece.getMaxMovement() != 0 || this.gameStage == -1) {
-                if (currPiece.isLightTeam() && !lightTurn) { return; }
-                if (!currPiece.isLightTeam() && lightTurn) { return; }
+
                 f.setDisplay(false);
-                repaint();
+
             }
+
         }
 
-        // use the ponds as buttons
+        // if the field under the cursor is in either pond then
         int x = f.getPos().x;
         int y = f.getPos().y;
         boolean inPonds = (x >= 2 && x <= 3 && y >= 4 && y <= 5) ||
                 (x >= 6 && x <= 7 && y >= 4 && y <= 5);
         if (inPonds) {
-            // while in init phase
+
+            // and if the game is in the setup phase, then
             if (gameStage == -1) {
-                // first time: transition to the other player
+
+                // if clicked the first time then
                 if (lightTurn) {
-                    gameWindow.setTitle("Stratego! - Dark sets up, click either pond when finished");
+
+                    // transitions to Dark's setup turn
+                    if (gameWindow != null) gameWindow.setTitle("Stratego! - Dark sets up, click either pond when finished");
                     lightTurn = false;
-                    repaint();
-                // second time: start game with light
+
+                // and if clicked the second time then
                 } else {
-                    gameWindow.setTitle("Stratego! - Light's turn, click either pond to start");
+
+                    // transitions to Light's first normal turn
+                    if (gameWindow != null) gameWindow.setTitle("Stratego! - Light's turn, click either pond to start");
                     lightTurn = true;
                     startedTurn = false;
                     gameStage = 0;
-                    repaint();
+
                 }
+
+            // or if the game is already in the playing phase, then
             } else if (gameStage == 0) {
+
+                // start the current turn
+                if (gameWindow != null) gameWindow.setTitle("Stratego! - " + (lightTurn ? "Light" : "Dark") + "'s turn");
                 startedTurn = true;
-                gameWindow.setTitle("Stratego! - " + (lightTurn ? "Light" : "Dark") + "'s turn");
-                currPiece = null;
-                repaint();
+
             }
+
         }
+
+        repaint();
 
     }
 
+    /**
+     * Figures out what to do when the mouse is released
+     * @param e the event to be processed
+     */
     @Override
     public void mouseReleased(MouseEvent e) {
-        Field chosen = (Field) this.getComponentAt(new Point(e.getX(), e.getY()));
 
-        // if there's a piece picked up
+        // if there's a piece picked up then
         if (currPiece != null) {
-            if (currPiece.isLightTeam() && !lightTurn) { return; }
-            if (!currPiece.isLightTeam() && lightTurn) { return; }
 
-            // and the game is in the playing phase
-            if (this.gameStage == 0) {
+            // finds the chosen field, aka where the mouse was released
+            Field chosen = (Field) this.getComponentAt(new Point(e.getX(), e.getY()));
 
-                // show all the valid spots to move to
-                Vector<Field> validMoves = currPiece.findValidMoves(this);
-                if (validMoves.contains(chosen)) {
+            // if in setup phase, handles swapping
+            if (this.gameStage == -1) {
 
-                    // and if player chooses a valid spot, move there
-                    chosen.setDisplay(true);
-                    try {
-                        currPiece.move(chosen);
-                    } catch (InvalidMoveException ignored) {
-                    }
-
-                    // and transition to the other player's turn
-                    currPiece.getField().setDisplay(true);
-                    currPiece = null;
-                    lightTurn = !lightTurn;
-                    if (this.gameStage < 1) {
-                        gameWindow.setTitle("Stratego! - " + (isLightTurn() ? "Light" : "Dark") + "'s turn, click either pond to start");
-                        startedTurn = false;
-                    }
-
-                } else {
-                    currPiece.getField().setDisplay(true);
-                    currPiece = null;
-                }
-
-            // or if the game is in the setup phase
-            } else if (this.gameStage == -1){
-
-                // if the player's trying to swap pieces in the correct half, then do that
-                boolean inLightHalf = chosen.getPos().x >= 0 && chosen.getPos().x <= 9 && chosen.getPos().y >= 6 && chosen.getPos().y <= 9;
-                boolean inDarkHalf = chosen.getPos().x >= 0 && chosen.getPos().x <= 9 && chosen.getPos().y >= 0 && chosen.getPos().y <= 3;
-
+                // if the player's trying to swap pieces in the correct half
+                boolean inLightHalf = chosen.getPos().y >= 6 && chosen.getPos().y <= 9;
+                boolean inDarkHalf = chosen.getPos().y >= 0 && chosen.getPos().y <= 3;
                 if ( (inLightHalf && chosen.getPiece().isLightTeam()) || (inDarkHalf && !chosen.getPiece().isLightTeam()) ) {
+
                     Field f = currPiece.getField();
                     Piece temp = currPiece;
                     f.accept(chosen.remove());
                     chosen.accept(temp);
-                    chosen.setDisplay(true);
+
                     f.setDisplay(true);
+
                 }
-                currPiece.getField().setDisplay(true);
-                chosen.setDisplay(true);
-                currPiece = null;
 
             }
-            repaint();
-            gameWindow.save();
+
+            // if in playing phase, handles movement
+            if (this.gameStage == 0) {
+
+                // shows all the valid spots to move to
+                Vector<Field> validMoves = currPiece.findValidMoves(this);
+
+                // if player chooses valid spot then
+                if (validMoves.contains(chosen)) {
+
+                    // move there
+                    currPiece.move(chosen);
+
+                    // and transition to the other player's turn
+                    lightTurn = !lightTurn;
+                    if (gameWindow != null && gameStage != 1) gameWindow.setTitle("Stratego! - " + (isLightTurn() ? "Light" : "Dark") + "'s turn, click either pond to start");
+                    startedTurn = false;
+
+                }
+
+            }
+
+            currPiece.getField().setDisplay(true);
+            chosen.setDisplay(true);
+
         }
+
+        currPiece = null;
+        repaint();
+        gameWindow.save();
 
     }
 
+    /**
+     * Updates the drawing position when dragging the mouse
+     * @param e the event to be processed
+     */
     @Override
     public void mouseDragged(MouseEvent e) {
+
+        // sets the draw position to be under the mouse
         this.currPos = new Point(e.getX() - 30 ,e.getY() - 30);
-        if (currPiece != null) {
-            if (currPiece.isLightTeam() && !lightTurn) {
-                return;
-            }
-            if (!currPiece.isLightTeam() && lightTurn) {
-                return;
-            }
-            repaint();
-        }
+
+        repaint();
 
     }
 
-    // Irrelevant methods, do nothing for these mouse behaviors
+    // Irrelevant methods
     @Override
-    public void mouseMoved(MouseEvent e) {
-    }
-
+    public void mouseMoved(MouseEvent e) {}
     @Override
-    public void mouseClicked(MouseEvent e) {
-    }
-
+    public void mouseClicked(MouseEvent e) {}
     @Override
-    public void mouseEntered(MouseEvent e) {
-    }
-
+    public void mouseEntered(MouseEvent e) {}
     @Override
-    public void mouseExited(MouseEvent e) {
-    }
+    public void mouseExited(MouseEvent e) {}
+
 
 }

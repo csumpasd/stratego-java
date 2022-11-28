@@ -1,13 +1,13 @@
 package pieces;
 
+import board.*;
+import helper.*;
+
 import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
 import java.util.*;
 import javax.imageio.ImageIO;
-
-import board.*;
-import helper.*;
 
 /**
  * Implements the basic piece in the game
@@ -19,6 +19,7 @@ import helper.*;
  * </p>
  */
 public class Piece implements Serializable {
+
     /**
      * Makes sure serialization doesn't break
      */
@@ -67,6 +68,7 @@ public class Piece implements Serializable {
      * @param strength The strength of the new piece
      */
     public Piece(boolean isLightTeam, int strength) {
+
         this.field = null;
         this.isLightTeam = isLightTeam;
         this.strength = strength;
@@ -74,11 +76,16 @@ public class Piece implements Serializable {
         this.revealed = false;
 
         try {
+
             this.shown = ImageIO.read(Objects.requireNonNull(getClass().getResource("/" + (isLightTeam ? "lgt-" : "drk-") + strength + ".png")));
             this.hidden = ImageIO.read(Objects.requireNonNull(getClass().getResource("/" + (isLightTeam ? "lgt-" : "drk-") + "unknown.png")));
+
         } catch (IOException e) {
+
             System.err.println("File not found: " + e.getMessage());
+
         }
+
     }
 
     /**
@@ -90,37 +97,41 @@ public class Piece implements Serializable {
      *     Also tests for conflicts, and if there is one, calls the conflicting piece's steppedOn() method. This might result in the piece not being able to move to the desired spot, or the piece getting removed.
      * </p>
      * @param chosen The chosen field to move to
-     * @throws InvalidMoveException If the piece can't move to the chosen spot
      */
-    public void move(Field chosen) throws InvalidMoveException {
+    public void move(Field chosen) {
 
         // makes a list of all the valid moves for the current piece
         Vector<Field> validMoves = findValidMoves(field.getBoard());
 
         // breaks execution if the chosen move is invalid, so after this point we can assume it is
-        if (!validMoves.contains(chosen)) { throw new InvalidMoveException(); }
+        if (!validMoves.contains(chosen)) { return; }
 
-        // if there's a conflict between the current piece and an enemy one, then
+        // if there's a conflict between the current piece and an enemy one then
         if (chosen.getPiece() != null) {
 
-            // then sets the piece as revealed, and then
+            // sets the piece as revealed and then
             this.revealed = true;
             Piece conflicting = chosen.getPiece();
             switch (conflicting.steppedOn(this)) {
+
                 case 0: // either does nothing
                     return;
+
                 case 1: // or moves the piece because it was stronger than the enemy
                     chosen.accept(field.remove());
                     return;
+
                 case 2: // or removes the piece, for example because it was of equal power
                     field.remove();
                     return;
+
             }
 
         }
 
         // in case of no conflict, moves the piece to the chosen spot
         chosen.accept(field.remove());
+
     }
 
     /**
@@ -135,6 +146,7 @@ public class Piece implements Serializable {
 
         // if the enemy piece is stronger, removes this piece and tells them to move here
         if (strength < by.getStrength()) {
+
             field.remove();
             return 1;
 
@@ -142,8 +154,10 @@ public class Piece implements Serializable {
 
         // if the two pieces' strength is equal, removes this one, and tells the other to remove itself too
         if (strength == by.getStrength()) {
+
             field.remove();
             return 2;
+
         }
 
         // and if the other piece was weaker, tells them to not move here
@@ -209,7 +223,7 @@ public class Piece implements Serializable {
 
     /**
      * Graphics method for drawing the piece
-     * @param g The graphics doing the drawing
+     * @param g The graphics object doing the drawing
      */
     public void draw(Graphics g) {
 
@@ -217,47 +231,96 @@ public class Piece implements Serializable {
         int x = field.getX();
         int y = field.getY();
 
-        // if the turn has started, and the piece should be otherwise shown, then draw it so
-        boolean shouldShow = field.getBoard().hasStartedTurn() && ((field.getBoard().isLightTurn() == isLightTeam) || revealed);
+        // if the turn has started, and the piece should be otherwise shown, then draw it so, otherwise draw it hidden
+        boolean shouldShow = (field.getBoard().hasStartedTurn() && (field.getBoard().isLightTurn() == isLightTeam)) || revealed;
         g.drawImage(shouldShow ? this.shown : this.hidden, x, y, null);
 
     }
 
+    /**
+     * Finds all the fields the current piece can validly move to
+     * @param b The board, passes it to its helper method, testForValidMovesInDirection()
+     * @return A Vector containing all the valid moves
+     */
     public Vector<Field> findValidMoves(Board b) {
+
+        // constructs the vector that's going to be filled with the valid moves
         Vector<Field> validMoves = new Vector<>();
 
-        // uses some ~lambda~ to run the tester function in all directions
+        // uses some ~lambda~ to be able to run the tester function in all directions
         PointShiftFunction xPlus = (x, y, i) -> new Point(x+i,y);
         PointShiftFunction xMinus = (x, y, i) -> new Point(x-i,y);
         PointShiftFunction yPlus = (x, y, i) -> new Point(x,y+i);
         PointShiftFunction yMinus = (x, y, i) -> new Point(x,y-i);
 
-        validMoves.addAll(testForValidMovesInDirection(xPlus, b));
-        validMoves.addAll(testForValidMovesInDirection(xMinus, b));
-        validMoves.addAll(testForValidMovesInDirection(yPlus, b));
-        validMoves.addAll(testForValidMovesInDirection(yMinus, b));
+        // runs the tester function in all directions and adds the found fields to the vector
+        validMoves.addAll(findValidMovesInDirection(xPlus, b));
+        validMoves.addAll(findValidMovesInDirection(xMinus, b));
+        validMoves.addAll(findValidMovesInDirection(yPlus, b));
+        validMoves.addAll(findValidMovesInDirection(yMinus, b));
 
+        // returns with all the valid moves
         return validMoves;
+
     }
 
-    private Vector<Field> testForValidMovesInDirection(PointShiftFunction direction, Board b) {
+    /**
+     * Finds all valid fields in the direction specified
+     * @param direction The lambda function that shifts the starting point in the right direction
+     * @param b The board, used to get the field in a certain point
+     * @return A vector containing the valid fields in the given direction
+     */
+    private Vector<Field> findValidMovesInDirection(PointShiftFunction direction, Board b) {
+
+        // constructs a vector to be filled with valid moves
         Vector<Field> validMovesInThisDirection = new Vector<>();
-        boolean found = false;
+
+        // for all the fields in a given direction up until distance == maxMovement
         for (int i = 1; i <= maxMovement; i++) {
+
+            // finds the coordinates of the tested field using the given lambda function
             Point tested = new Point(direction.shiftPoint(field.getPos().x,field.getPos().y,i));
-            if (b.canStepHere(tested, isLightTeam) && !found) {
+
+            // and if the tested field would be a valid move then
+            if (b.canStepHere(tested, isLightTeam)) {
+
+                // adds the field to the list
                 validMovesInThisDirection.add(b.getBoard()[tested.y][tested.x]);
-                if (!b.getBoard()[tested.y][tested.x].isEmpty()) { return validMovesInThisDirection; }
-            } else { found = true; }
+
+                // and if there's an enemy on the tested field, it stops testing
+                if (!b.getBoard()[tested.y][tested.x].isEmpty()) {
+                    return validMovesInThisDirection;
+                }
+
+            // and if the tested field is invalid, it stops testing as well
+            } else {
+                return validMovesInThisDirection;
+            }
+
         }
+
+        // otherwise just returns after reaching the max movement distance
         return validMovesInThisDirection;
+
     }
 
+    /**
+     * BufferedImages aren't serializable, so this reads them from resources again when loading a game
+     * @param in The ObjectInputStream serialized reading uses
+     * @throws IOException If it can't read the images for some reason
+     * @throws ClassNotFoundException If it can't get the class of the piece
+     */
     @Serial
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+
+        // calls the default reader
         in.defaultReadObject();
+
+        // and extends it with the two images
         this.shown = ImageIO.read(Objects.requireNonNull(getClass().getResource("/" + (isLightTeam ? "lgt-" : "drk-") + strength + ".png")));
         this.hidden = ImageIO.read(Objects.requireNonNull(getClass().getResource("/" + (isLightTeam ? "lgt-" : "drk-") + "unknown.png")));
+
     }
+
 
 }

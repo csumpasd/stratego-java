@@ -1,15 +1,10 @@
 import board.Board;
 import board.Field;
-import helper.InvalidMoveException;
-import org.junit.jupiter.api.Test;
-import org.testng.annotations.BeforeClass;
 import pieces.Piece;
 
-import javax.imageio.ImageIO;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.Objects;
 import java.util.Vector;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,15 +13,21 @@ import static org.junit.jupiter.api.Assertions.*;
  * JUnit tests for the Board, Field, and Piece classes
  */
 class AllTests {
+
+    /**
+     * Board to do all the tests on
+     */
     Board board;
 
     /**
-     * Creates a board to do all the tests on, and sets it to the playing state
+     * Creates the board, and sets it to the playing state
      */
-    @BeforeClass
+    @BeforeEach
     void setUp() {
+
         board = new Board(null);
         board.setGameStage(0);
+
     }
 
 
@@ -35,12 +36,13 @@ class AllTests {
      */
     @Test
     void move() {
+
         Piece originalPiece = board.getBoard()[6][0].getPiece();
 
-        try {
-            board.getBoard()[6][0].getPiece().move(board.getBoard()[5][0]);
-        } catch (InvalidMoveException ignored) {}
-        assertEquals(board.getBoard()[5][0].getPiece().getStrength(), originalPiece.getStrength());
+        board.getBoard()[6][0].getPiece().move(board.getBoard()[5][0]);
+
+        assertEquals(originalPiece.getStrength(), board.getBoard()[5][0].getPiece().getStrength());
+
     }
 
     /**
@@ -48,8 +50,10 @@ class AllTests {
      */
     @Test
     void steppedOn() {
+
         board.getBoard()[3][1].getPiece().steppedOn(board.getBoard()[6][1].getPiece());
         assertTrue(board.getBoard()[3][1].isEmpty());
+
     }
 
     /**
@@ -57,20 +61,20 @@ class AllTests {
      */
     @Test
     void findValidMoves() {
+
         Vector<Field> validMove = board.getBoard()[2][6].getPiece().findValidMoves(board);
         assertTrue(validMove.isEmpty());
+
     }
 
     /**
-     * Gets an image from resources, and tests if a piece which should have that image actually does
+     * Tests if the image is properly given back
      */
     @Test
     void getImg() {
-        BufferedImage expected = null;
-        try {
-             expected = ImageIO.read(Objects.requireNonNull(getClass().getResource("/drk-5.png")));
-        } catch (IOException ignored) {}
-        assertEquals(board.getBoard()[2][7].getPiece().getImg(), expected);
+
+        assertNotNull(board.getBoard()[2][7].getPiece().getImg());
+
     }
 
 
@@ -79,8 +83,10 @@ class AllTests {
      */
     @Test
     void accept() {
+
         board.getBoard()[4][4].accept(new Piece(false, 7));
         assertFalse(board.getBoard()[4][4].isEmpty());
+
     }
 
     /**
@@ -88,8 +94,10 @@ class AllTests {
      */
     @Test
     void remove() {
+
         board.getBoard()[0][0].remove();
         assertTrue(board.getBoard()[0][0].isEmpty());
+
     }
 
     /**
@@ -97,8 +105,10 @@ class AllTests {
      */
     @Test
     void getPiece() {
+
         Piece p = board.getBoard()[0][1].getPiece();
         assertEquals(p.getStrength(),0);
+
     }
 
 
@@ -107,8 +117,10 @@ class AllTests {
      */
     @Test
     void canStepHere() {
+
         boolean canStepHere = board.canStepHere(new Point(3,4), false);
         assertFalse(canStepHere);
+
     }
 
     /**
@@ -116,8 +128,10 @@ class AllTests {
      */
     @Test
     void win() {
+
         board.win(board.getBoard()[9][9].getPiece());
-        assertEquals(board.getGameStage(), 1);
+        assertEquals(1, board.getGameStage());
+
     }
 
     /**
@@ -125,8 +139,11 @@ class AllTests {
      */
     @Test
     void getBoard() {
+
         Field[][] b = board.getBoard();
         assertFalse(b[9][0].isEmpty());
+
     }
+
 
 }
