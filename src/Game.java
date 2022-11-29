@@ -4,9 +4,9 @@ import gui.MenuWindow;
 
 /**
  * Entry point to the program
- * <t>
+ * <p>
  *     Runs menu with invokeLater to be able to properly handle it from other threads
- * </t>
+ * </p>
  */
 public class Game implements Runnable {
 
@@ -15,7 +15,10 @@ public class Game implements Runnable {
         SwingUtilities.invokeLater(new MenuWindow());
     }
 
-    // invokes this class as a thread
+    /**
+     * Invokes this class as a thread
+     * @param args The passed args, empty here
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Game());
     }

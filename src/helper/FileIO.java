@@ -5,7 +5,7 @@ import board.Board;
 import java.io.*;
 
 /**
- * Class to implement static file IO methods
+ * Handles reading from and writing to file
  */
 public class FileIO {
 

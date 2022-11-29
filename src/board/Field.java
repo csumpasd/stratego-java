@@ -9,7 +9,7 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * Implements the field that make up the board
+ * Implements the fields that make up the board
  * <p>
  *     These are the places where pieces can stand, they are fix and are colored in a chessboard pattern
  * </p>

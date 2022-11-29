@@ -5,9 +5,6 @@ import javax.swing.*;
 
 import static java.lang.System.exit;
 
-/**
- * Shows the menu if launched as a thread, the player can launch the game from here or just exit the program
- */
 public class MenuWindow implements Runnable {
 
     /**

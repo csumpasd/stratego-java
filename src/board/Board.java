@@ -176,6 +176,7 @@ public class Board extends JPanel implements Serializable, MouseListener, MouseM
      *     First checks if the point is on the board, then makes sure it's not in either pond, then finally checks if there's a teammate there.
      * </p>
      * @param p Point with x,y coordinates
+     * @param team Team of the piece to test for
      * @return true if valid, false otherwise
      */
     public boolean canStepHere(Point p, boolean team) {
@@ -390,8 +391,9 @@ public class Board extends JPanel implements Serializable, MouseListener, MouseM
         // if there's a piece picked up then
         if (currPiece != null) {
 
-            // finds the chosen field, aka where the mouse was released
+            // finds the chosen field, aka where the mouse was released, and stops if none is found
             Field chosen = (Field) this.getComponentAt(new Point(e.getX(), e.getY()));
+            if (chosen == null) { currPiece.getField().setDisplay(true); currPiece = null; repaint(); return; }
 
             // if in setup phase, handles swapping
             if (this.gameStage == -1) {
